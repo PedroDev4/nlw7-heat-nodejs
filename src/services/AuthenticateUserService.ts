@@ -18,15 +18,16 @@ interface IAccessTokenResponse {
 }
 
 interface User {
-    avatar_url: string;
     id: number;
+    avatar_url: string;
     login: string;
     name: string;
 }
 
 interface IResponse {
-    token: string,
-    user: User
+    token: string;
+    user_id: string;
+    user: User;
 }
 
 class AuthenticateUserService {
@@ -43,18 +44,20 @@ class AuthenticateUserService {
             }
         });
 
-        const { name, id, login, avatar_url } = data;
+        const { name, id: github_id, login, avatar_url } = data;
+
+        console.log(github_id);
 
         const user = await prismaClient.user.findFirst({
             where: {
-                github_id: id
+                github_id
             }
         });
 
         if (!user) {
             await prismaClient.user.create({
                 data: {
-                    github_id: id,
+                    github_id,
                     login,
                     avatar_url,
                     name
@@ -62,8 +65,8 @@ class AuthenticateUserService {
             })
         }
 
-        const token = await this.createJwtToken({
-            id,
+        const token = await this.createJwtToken(user.id, {
+            id: github_id,
             avatar_url,
             login,
             name
@@ -71,9 +74,10 @@ class AuthenticateUserService {
 
         const response: IResponse = {
             token,
+            user_id: user.id,
             user: {
+                id: github_id,
                 avatar_url,
-                id: user.github_id,
                 login,
                 name
             }
@@ -97,16 +101,16 @@ class AuthenticateUserService {
         return access_tokenResponse.access_token;
     }
 
-    private async createJwtToken({ id, avatar_url, login, name }: User): Promise<string> {
+    private async createJwtToken(id: string, { id: github_id, avatar_url, login, name }: User): Promise<string> {
         const token = sign({
             user: {
-                id,
+                github_id,
                 avatar_url,
                 login,
                 name
             }
         }, process.env.JWT_SECRET, {
-            subject: String(id),
+            subject: id,
             expiresIn: "1d"
         });
 
