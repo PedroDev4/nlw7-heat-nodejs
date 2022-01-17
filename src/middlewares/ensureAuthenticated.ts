@@ -16,14 +16,12 @@ export async function ensureAuthenticated(request: Request, response: Response, 
         });
     }
 
-    // Estrutura do token no headers => "Bearer ajo3oi3131olal31"
+    // Estrutura do token no headers => ["Bearer","ajo3oi3131olal31"]
 
     const [, token] = authToken.split(" ");
 
     try {
         const { sub: userId } = verify(token, process.env.JWT_SECRET) as IPaylaod;
-
-        request.user_id = userId;
 
         const userExists = await prismaClient.user.findUnique({
             where: {
@@ -35,6 +33,7 @@ export async function ensureAuthenticated(request: Request, response: Response, 
             throw new Error('User does not exits on database');
         }
 
+        request.user_id = userId;
         next();
     } catch (err) {
         return response.status(401).json({

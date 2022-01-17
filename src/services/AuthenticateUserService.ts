@@ -46,23 +46,21 @@ class AuthenticateUserService {
 
         const { name, id: github_id, login, avatar_url } = data;
 
-        console.log(github_id);
-
-        const user = await prismaClient.user.findFirst({
+        let user = await prismaClient.user.findFirst({
             where: {
                 github_id
             }
         });
 
         if (!user) {
-            await prismaClient.user.create({
+            user = await prismaClient.user.create({
                 data: {
                     github_id,
                     login,
                     avatar_url,
                     name
                 }
-            })
+            });
         }
 
         const token = await this.createJwtToken(user.id, {
